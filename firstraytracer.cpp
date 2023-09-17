@@ -56,6 +56,10 @@ class Vector3 {
         static float Length(const Vector3& v) {
             return sqrt(Dot(v, v));
         }
+    
+        void printCoords() {
+            cout << "(" << this->x << "," << this->y << "," << this->z << ")" << endl;
+        }
 };
 
 class SceneObject {
@@ -86,6 +90,7 @@ class Sphere : public SceneObject {
             this->color.b = 255;
             this->color.a = 255;
         }
+    
         // no color
         Sphere(Vector3 newPos, float radius) {
             this->position = newPos;
@@ -201,6 +206,7 @@ Light* lights[NUM_OF_LIGHTS] = {
     new DirectionalLight(0.2, Vector3(1, 4, 4))
 };
 
+const float EPSILON = numeric_limits<float>::epsilon();
 const float INFINITE = numeric_limits<float>::max();
 
 // =============
@@ -241,29 +247,35 @@ void IntersectRaySphere(Vector3 origin, Vector3 direction, Sphere* sphere, float
     *t2 = (-b - sqrt(discriminant)) / (2*a);
 }
 
-//void ClosestIntersection(Vector3 origin, Vector3 direction, float t_min, float t_max, float* closest_t, Sphere* closest_sphere) {
-//    for (int s = 0; s < NUM_OF_SPHERES; s++) {
-//
-//        float t1, t2; // Send addresses
-//        IntersectRaySphere(origin, direction, spheres[s], &t1, &t2);
-//
-//        if ((t1 > t_min && t1 < t_max) && (t1 < closest_t)) {
-//            *closest_t = t1;
-//            closest_sphere = spheres[s];
-//        }
-//
-//        if ((t2 > t_min && t2 < t_max) && (t2 < closest_t)) {
-//            *closest_t = t2;
-//            closest_sphere = spheres[s];
-//        }
-//
-//    }; // End for loop
-//}
+void ClosestIntersection(Vector3 origin, Vector3 direction, float t_min, float t_max, float* closest_t, Sphere** closest_sphere) {
+    
+    *closest_t = INFINITE;
+    *closest_sphere = nullptr;
+    
+    for (int s = 0; s < NUM_OF_SPHERES; s++) {
 
-// TO-DO: Fix specular lighting
+        float t1, t2; // Send addresses
+        IntersectRaySphere(origin, direction, spheres[s], &t1, &t2);
+
+        if ((t1 > t_min && t1 < t_max) && (t1 < *closest_t)) {
+            *closest_t = t1;
+            *closest_sphere = spheres[s];
+        }
+
+        if ((t2 > t_min && t2 < t_max) && (t2 < *closest_t)) {
+            *closest_t = t2;
+            *closest_sphere = spheres[s];
+        }
+        
+    }; // End for loop
+}
+
 float ComputeLighting(Vector3 point, Vector3 normal, Vector3 viewport, float specular) {
+    
     float totalIntensity = 0.0;
     Vector3 lightRay;
+    
+    float t_max;
     
     for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         
@@ -275,10 +287,22 @@ float ComputeLighting(Vector3 point, Vector3 normal, Vector3 viewport, float spe
                 continue;
             case POINT:
                 lightRay = currLight->getVector() - point;
+                t_max = 1.0;
                 break;
+                
             case DIRECTIONAL:
                 lightRay = currLight->getVector();
+                t_max = INFINITE;
                 break;
+        }
+        
+        // Shadow check
+        float shadow_t;
+        Sphere* shadow_sphere;
+        ClosestIntersection(point, lightRay, 0.01 , t_max, &shadow_t, &shadow_sphere);
+        if (shadow_sphere) {
+            // if a shadow is in between the point and the light, skip it.
+            continue;
         }
         
         // Diffuse
@@ -299,29 +323,12 @@ float ComputeLighting(Vector3 point, Vector3 normal, Vector3 viewport, float spe
     return totalIntensity;
 };
 
-// to-do: ClosestIntersection returns null sphere -> white color
 SDL_Color TraceRay(Vector3 origin, Vector3 direction, float t_min, float t_max) {
     
-    float closest_t = t_max;
-    Sphere* closest_sphere = nullptr;
+    float closest_t;
+    Sphere* closest_sphere;
 
-    // ClosestIntersection(origin, direction, t_min, t_max, &closest_t, )
-    for (int s = 0; s < NUM_OF_SPHERES; s++) {
-        
-        float t1, t2; // Send addresses
-        IntersectRaySphere(origin, direction, spheres[s], &t1, &t2);
-        
-        if ((t1 > t_min && t1 < t_max) && (t1 < closest_t)) {
-            closest_t = t1;
-            closest_sphere = spheres[s];
-        }
-
-        if ((t2 > t_min && t2 < t_max) && (t2 < closest_t)) {
-            closest_t = t2;
-            closest_sphere = spheres[s];
-        }
-        
-    }; // End for loop
+    ClosestIntersection(origin, direction, t_min, t_max, &closest_t, &closest_sphere);
 
     if (!closest_sphere) {
         return BACKGROUND_COLOR;
