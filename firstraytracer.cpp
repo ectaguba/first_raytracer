@@ -16,13 +16,13 @@ using namespace std;
 // =============
 class Vector3 {
     public:
-        double x;
-        double y;
-        double z;
+        float x;
+        float y;
+        float z;
         
         Vector3() {}
         
-        Vector3(double x, double y, double z) {
+        Vector3(float x, float y, float z) {
             this->x = x;
             this->y = y;
             this->z = z;
@@ -39,7 +39,7 @@ class Vector3 {
         }
 
         // Scalar multiplication
-        Vector3 operator*(double scalar) const {
+        Vector3 operator*(float scalar) const {
             return Vector3(x * scalar, y * scalar, z * scalar);
         }
     
@@ -48,12 +48,12 @@ class Vector3 {
         }
 
         // Dot product
-        static double Dot(const Vector3& v1, const Vector3& v2) {
+        static float Dot(const Vector3& v1, const Vector3& v2) {
             return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
         }
 
         // Vector length
-        static double Length(const Vector3& v) {
+        static float Length(const Vector3& v) {
             return sqrt(Dot(v, v));
         }
 };
@@ -72,9 +72,9 @@ class SceneObject {
 
 class Sphere : public SceneObject {
     public:
-        double radius;
+        float radius;
         SDL_Color color; // struct
-        int specular;
+        float   specular;
     
         Sphere() {
             this->position = Vector3(0, 0, 0);
@@ -87,7 +87,7 @@ class Sphere : public SceneObject {
             this->color.a = 255;
         }
         // no color
-        Sphere(Vector3 newPos, double radius) {
+        Sphere(Vector3 newPos, float radius) {
             this->position = newPos;
             
             this->radius = radius;
@@ -99,14 +99,14 @@ class Sphere : public SceneObject {
         }
         
         // SDL_Color
-        Sphere(Vector3 newPos, double radius, SDL_Color color) {
+        Sphere(Vector3 newPos, float radius, SDL_Color color) {
             this->position = newPos;
             this->radius = radius;
             this->color = color;
         }
     
         // SDL_Color + light
-        Sphere(Vector3 newPos, double radius, SDL_Color color, int specular) {
+        Sphere(Vector3 newPos, float radius, SDL_Color color, float specular) {
             this->position = newPos;
             this->radius = radius;
             this->color = color;
@@ -124,10 +124,10 @@ enum LightType {
 
 class Light {
 public:
-    double intensity;
+    float intensity;
     LightType type;
     
-    Light(double intensity, LightType type) : intensity(intensity), type(type) {}
+    Light(float intensity, LightType type) : intensity(intensity), type(type) {}
     
     virtual Vector3 getVector() const {
         return Vector3(0, 0, 0);
@@ -136,14 +136,14 @@ public:
 
 class AmbientLight : public Light {
 public:
-    AmbientLight(double intensity) : Light(intensity, AMBIENT) {}
+    AmbientLight(float intensity) : Light(intensity, AMBIENT) {}
 };
 
 class PointLight : public Light {
 public:
     Vector3 position;
 
-    PointLight(double intensity, Vector3 position) : Light(intensity, POINT), position(position) {}
+    PointLight(float intensity, Vector3 position) : Light(intensity, POINT), position(position) {}
     
     Vector3 getVector() const override {
         // Calculate the direction from the light to the position.
@@ -155,7 +155,7 @@ class DirectionalLight : public Light {
 public:
     Vector3 direction;
     
-    DirectionalLight(double intensity, Vector3 direction) : Light(intensity, DIRECTIONAL), direction(direction) {}
+    DirectionalLight(float intensity, Vector3 direction) : Light(intensity, DIRECTIONAL), direction(direction) {}
     
     Vector3 getVector() const override {
         // Directional lights have a fixed direction.
@@ -163,15 +163,14 @@ public:
     }
 };
 
-
 // =============
 // Global variables
 // =============
-double Cw = 720;
-double Ch = 720;
-double Vw = 1;
-double Vh = 1;
-double projection_plane_z = 1;
+float Cw = 720;
+float Ch = 720;
+float Vw = 1;
+float Vh = 1;
+float projection_plane_z = 1;
 
 const SDL_Color BACKGROUND_COLOR = {255, 255, 255, 255}; // white
 
@@ -182,6 +181,10 @@ const SDL_Color YELLOW = {255, 255, 0, 255};
 
 const int OBJECT_NOT_SHINY = -1;
 
+// spheres identifier is an Array of pointers to Sphere objects.
+// spheres[1] would print pointer address
+// *spheres[1] dereferences object and accesses class members
+
 const int NUM_OF_SPHERES = 4;
 Sphere* spheres[NUM_OF_SPHERES] = {
     new Sphere(Vector3(0, -1, 3), 1, RED, 500),
@@ -190,73 +193,44 @@ Sphere* spheres[NUM_OF_SPHERES] = {
     new Sphere(Vector3(0, -5001, 0), 5000, YELLOW, 1000)
 };
 
-
+// Array of pointers to Light objects.
 const int NUM_OF_LIGHTS = 3;
-Light* lights[] = {
+Light* lights[NUM_OF_LIGHTS] = {
     new AmbientLight(0.2),
     new PointLight(0.6, Vector3(2, 1, 0)),
     new DirectionalLight(0.2, Vector3(1, 4, 4))
 };
 
-const double INFINITE = numeric_limits<double>::max();
+const float INFINITE = numeric_limits<float>::max();
 
 // =============
 // Methods
 // =============
 
 // Converts 2D canvas coordinates to 3D viewport coordinates
-// IMPORTANT: Variables must be doubles in order for direction vector to be correct
-Vector3 CanvasToViewport(double x, double y) {
+// IMPORTANT: Variables must be floats in order for direction vector to be correct
+Vector3 CanvasToViewport(float x, float y) {
     return Vector3( (x) * (Vw/Cw), (y) * (Vh/Ch), projection_plane_z);
 };
 
-// TO-DO: Fix specular lighting
-double ComputeLighting(Vector3 point, Vector3 normal, Vector3 viewport, int specular) {
-    double totalIntensity = 0.0;
-    Vector3 lightRay;
-    for (int i = 0; i < NUM_OF_LIGHTS; i++) {
-        
-        Light* currLight = lights[i]; // save reference to lights array
+SDL_Color MultiplyColor(SDL_Color color, float factor) {
+    SDL_Color result;
+    result.r = static_cast<float>(color.r) * factor;
+    result.g = static_cast<float>(color.g) * factor;
+    result.b = static_cast<float>(color.b) * factor;
+    result.a = color.a; // Preserve the alpha value
+    return result;
+}
 
-        switch (currLight->type) {
-            case AMBIENT:
-                totalIntensity += currLight->intensity;
-                break;
-            case POINT:
-                lightRay = currLight->getVector() - point;
-                break;
-            case DIRECTIONAL:
-                lightRay = currLight->getVector();
-                break;
-        }
-        
-        // Diffuse
-        double n_dot_l = Vector3::Dot(normal, lightRay);
-        if (n_dot_l > 0) {
-            totalIntensity += (currLight->intensity) * ( n_dot_l / (Vector3::Length(normal) * Vector3::Length(lightRay)) );
-        }
-
-//        // Specular
-//        if (specular != OBJECT_NOT_SHINY) {
-//            Vector3 specRay = (normal * 2 * Vector3::Dot(normal, viewport)) - lightRay ;
-//            double sr_dot_v = Vector3::Dot(specRay, viewport);
-//            if (sr_dot_v > 0) {
-//                totalIntensity += currLight->intensity * pow( sr_dot_v / (Vector3::Length(specRay) * Vector3::Length(viewport)), specular );
-//            }
-//        }
-    }
-    return totalIntensity;
-};
-
-void IntersectRaySphere(Vector3 origin, Vector3 direction, Sphere* sphere, double* t1, double* t2) {
-    double r = sphere->radius;
+void IntersectRaySphere(Vector3 origin, Vector3 direction, Sphere* sphere, float* t1, float* t2) {
+    float r = sphere->radius;
     Vector3 CO = origin - sphere->position;
     
-    double a = Vector3::Dot(direction, direction);
-    double b = 2.0 * Vector3::Dot(CO, direction);
-    double c = Vector3::Dot(CO, CO) - (r * r);
+    float a = Vector3::Dot(direction, direction);
+    float b = 2.0 * Vector3::Dot(CO, direction);
+    float c = Vector3::Dot(CO, CO) - (r * r);
     
-    double discriminant = (b * b) - (4.0 * a * c);
+    float discriminant = (b * b) - (4.0 * a * c);
     if (discriminant < 0) {
         *t1 = INFINITE; // Store value in pointer pointing to address of t1
         *t2 = INFINITE; // Store value in pointer pointing to address of t2
@@ -267,23 +241,74 @@ void IntersectRaySphere(Vector3 origin, Vector3 direction, Sphere* sphere, doubl
     *t2 = (-b - sqrt(discriminant)) / (2*a);
 }
 
-SDL_Color MultiplyColor(SDL_Color color, double factor) {
-    SDL_Color result;
-    result.r = static_cast<Uint8>(color.r * factor);
-    result.g = static_cast<Uint8>(color.g * factor);
-    result.b = static_cast<Uint8>(color.b * factor);
-    result.a = color.a; // Preserve the alpha value
-    return result;
-}
+//void ClosestIntersection(Vector3 origin, Vector3 direction, float t_min, float t_max, float* closest_t, Sphere* closest_sphere) {
+//    for (int s = 0; s < NUM_OF_SPHERES; s++) {
+//
+//        float t1, t2; // Send addresses
+//        IntersectRaySphere(origin, direction, spheres[s], &t1, &t2);
+//
+//        if ((t1 > t_min && t1 < t_max) && (t1 < closest_t)) {
+//            *closest_t = t1;
+//            closest_sphere = spheres[s];
+//        }
+//
+//        if ((t2 > t_min && t2 < t_max) && (t2 < closest_t)) {
+//            *closest_t = t2;
+//            closest_sphere = spheres[s];
+//        }
+//
+//    }; // End for loop
+//}
 
-SDL_Color TraceRay(Vector3 origin, Vector3 direction, double t_min, double t_max) {
+// TO-DO: Fix specular lighting
+float ComputeLighting(Vector3 point, Vector3 normal, Vector3 viewport, float specular) {
+    float totalIntensity = 0.0;
+    Vector3 lightRay;
     
-    double closest_t = t_max;
+    for (int i = 0; i < NUM_OF_LIGHTS; i++) {
+        
+        Light* currLight = lights[i]; // save reference to lights array
+
+        switch (currLight->type) {
+            case AMBIENT:
+                totalIntensity += currLight->intensity;
+                continue;
+            case POINT:
+                lightRay = currLight->getVector() - point;
+                break;
+            case DIRECTIONAL:
+                lightRay = currLight->getVector();
+                break;
+        }
+        
+        // Diffuse
+        float n_dot_l = Vector3::Dot(normal, lightRay);
+        if (n_dot_l > 0) {
+            totalIntensity += (currLight->intensity) * ( n_dot_l / (Vector3::Length(normal) * Vector3::Length(lightRay)) );
+        }
+
+        // Specular
+        if (specular != OBJECT_NOT_SHINY) {
+            Vector3 specRay = ((normal * 2) * Vector3::Dot(normal, lightRay)) - lightRay;
+            float sr_dot_v = Vector3::Dot(specRay, viewport);
+            if (sr_dot_v > 0) {
+                totalIntensity += currLight->intensity * pow( sr_dot_v / (Vector3::Length(specRay) * Vector3::Length(viewport)), specular );
+            }
+        }
+    }
+    return totalIntensity;
+};
+
+// to-do: ClosestIntersection returns null sphere -> white color
+SDL_Color TraceRay(Vector3 origin, Vector3 direction, float t_min, float t_max) {
+    
+    float closest_t = t_max;
     Sphere* closest_sphere = nullptr;
 
+    // ClosestIntersection(origin, direction, t_min, t_max, &closest_t, )
     for (int s = 0; s < NUM_OF_SPHERES; s++) {
         
-        double t1, t2; // Send addresses
+        float t1, t2; // Send addresses
         IntersectRaySphere(origin, direction, spheres[s], &t1, &t2);
         
         if ((t1 > t_min && t1 < t_max) && (t1 < closest_t)) {
@@ -295,6 +320,7 @@ SDL_Color TraceRay(Vector3 origin, Vector3 direction, double t_min, double t_max
             closest_t = t2;
             closest_sphere = spheres[s];
         }
+        
     }; // End for loop
 
     if (!closest_sphere) {
@@ -305,20 +331,16 @@ SDL_Color TraceRay(Vector3 origin, Vector3 direction, double t_min, double t_max
     Vector3 normal = point - closest_sphere->position; // compute sphere normal at closest_t intersection
     normal = normal * pow(Vector3::Length(normal), -1); // normalize normal
     
-    // Parameter viewport is Vector3 V from object to camera
-    // Vector3 D points from camera to object
-    // Therefore, V = -D
-    double lightIntensity = ComputeLighting(point, normal, direction * -1, closest_sphere->specular);
+    float lightIntensity = ComputeLighting(point, normal, direction * -1, closest_sphere->specular);
+    if (lightIntensity > 1) lightIntensity = 1; // IMPORTANT: Values over 1 may darken spots.
     
-    // Multiply the color with the intensity
     SDL_Color modifiedColor = MultiplyColor(closest_sphere->color, lightIntensity);
     
     return modifiedColor;
 };
 
-
 int main(int argc, char* args[]) {
-    
+
     // Initialize SDL2
     if( SDL_Init( SDL_INIT_VIDEO ) < 0 )
     {
@@ -334,8 +356,8 @@ int main(int argc, char* args[]) {
     // Create renderer
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     
-    for (double x = -Cw/2; x < Cw/2; x++) {
-        for (double y = -Ch/2; y < Ch/2; y++) {
+    for (float x = -Cw/2; x < Cw/2; x++) {
+        for (float y = -Ch/2; y < Ch/2; y++) {
             Vector3 direction = CanvasToViewport(x, y);
             SDL_Color color = TraceRay(camera.position, direction, 1, INFINITE);
 
