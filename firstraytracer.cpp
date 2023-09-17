@@ -15,110 +15,191 @@ using namespace std;
 // Classes
 // =============
 class Vector3 {
-    public:
-        float x;
-        float y;
-        float z;
-        
-        Vector3() {}
-        
-        Vector3(float x, float y, float z) {
-            this->x = x;
-            this->y = y;
-            this->z = z;
-        }
-        
-        // Vector addition
-        Vector3 operator+(const Vector3& other) const {
-            return Vector3(x + other.x, y + other.y, z + other.z);
-        }
-
-        // Vector subtraction
-        Vector3 operator-(const Vector3& other) const {
-            return Vector3(x - other.x, y - other.y, z - other.z);
-        }
-
-        // Scalar multiplication
-        Vector3 operator*(float scalar) const {
-            return Vector3(x * scalar, y * scalar, z * scalar);
-        }
+public:
+    float x;
+    float y;
+    float z;
     
-        bool operator==(const Vector3& other) const {
-            return (x == other.x) && (y == other.y) && (z == other.z);
-        }
-
-        // Dot product
-        static float Dot(const Vector3& v1, const Vector3& v2) {
-            return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
-        }
-
-        // Vector length
-        static float Length(const Vector3& v) {
-            return sqrt(Dot(v, v));
-        }
+    Vector3() {}
     
-        void printCoords() {
-            cout << "(" << this->x << "," << this->y << "," << this->z << ")" << endl;
-        }
+    Vector3(float x, float y, float z) {
+        this->x = x;
+        this->y = y;
+        this->z = z;
+    }
+    
+    // Vector addition
+    Vector3 operator+(const Vector3& other) const {
+        return Vector3(x + other.x, y + other.y, z + other.z);
+    }
+
+    // Vector subtraction
+    Vector3 operator-(const Vector3& other) const {
+        return Vector3(x - other.x, y - other.y, z - other.z);
+    }
+
+    // Scalar multiplication
+    Vector3 operator*(float scalar) const {
+        return Vector3(x * scalar, y * scalar, z * scalar);
+    }
+
+    bool operator==(const Vector3& other) const {
+        return (x == other.x) && (y == other.y) && (z == other.z);
+    }
+
+    // Dot product
+    static float Dot(const Vector3& v1, const Vector3& v2) {
+        return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+    }
+
+    // Vector length
+    static float Length(const Vector3& v) {
+        return sqrt(Dot(v, v));
+    }
+
+    void printCoords() {
+        cout << "(" << this->x << "," << this->y << "," << this->z << ")" << endl;
+    }
+};
+
+class RotationMatrix {
+public:
+    float matrix[3][3];
+    
+    RotationMatrix() {
+        matrix[0][0] = 1;
+        matrix[0][1] = 0;
+        matrix[0][2] = 0;
+        
+        matrix[1][0] = 0;
+        matrix[1][1] = 1;
+        matrix[1][2] = 0;
+        
+        matrix[2][0] = 0;
+        matrix[2][1] = 0;
+        matrix[2][2] = 1;
+    }
+    
+    RotationMatrix(float angleX, float angleY, float angleZ) {
+        // convert angles from degrees to radians
+        float radX = angleX * M_PI / 180.0;
+        float radY = angleY * M_PI / 180.0;
+        float radZ = angleZ * M_PI / 180.0;
+        
+        // compute individual rotation matrices
+        float cosX = cos(radX);
+        float sinX = sin(radX);
+        float cosY = cos(radY);
+        float sinY = sin(radY);
+        float cosZ = cos(radZ);
+        float sinZ = sin(radZ);
+        
+        matrix[0][0] = cosY * cosZ;
+        matrix[0][1] = -cosX * sinZ + sinX * sinY * cosZ;
+        matrix[0][2] = sinX * sinZ + cosX * sinY * cosZ;
+        
+        matrix[1][0] = cosY * sinZ;
+        matrix[1][1] = cosX * cosZ + sinX * sinY * sinZ;
+        matrix[1][2] = -sinX * cosZ + cosX * sinY * sinZ;
+        
+        matrix[2][0] = -sinY;
+        matrix[2][1] = sinX * cosY;
+        matrix[2][2] = cosX * cosY;
+    }
+    
+    const float* operator[](int i) const {
+        return matrix[i];
+    };
+
+//    // Function to apply the rotation to a 3D vector
+//    void rotate(float& x, float& y, float& z) {
+//        float newX = matrix[0][0] * x + matrix[0][1] * y + matrix[0][2] * z;
+//        float newY = matrix[1][0] * x + matrix[1][1] * y + matrix[1][2] * z;
+//        float newZ = matrix[2][0] * x + matrix[2][1] * y + matrix[2][2] * z;
+//
+//        x = newX;
+//        y = newY;
+//        z = newZ;
+//    }
 };
 
 class SceneObject {
-    public:
-        Vector3 position;
-        SceneObject() {
-            this->position = Vector3(0, 0, 0);
-        }
-        
-        SceneObject(Vector3 newPos) {
-            this->position = newPos;
-        }
+public:
+    Vector3 position;
+    SceneObject() {
+        this->position = Vector3(0, 0, 0);
+    }
+    
+    SceneObject(Vector3 newPos) {
+        this->position = newPos;
+    }
+};
+
+class Camera : public SceneObject {
+public:
+    RotationMatrix rotation;
+    
+    Camera() {
+        this->position = Vector3(0, 0, 0);
+        this->rotation = RotationMatrix();
+    }
+    
+    Camera(Vector3 position) {
+        this->position = position;
+        this->rotation = RotationMatrix();
+    }
+    
+    Camera(Vector3 position, RotationMatrix rotation) {
+        this->position = position;
+        this->rotation = rotation;
+    }
 };
 
 class Sphere : public SceneObject {
-    public:
-        float radius;
-        SDL_Color color; // struct
-        float specular;
-        float reflective;
-    
-        Sphere() {
-            this->position = Vector3(0, 0, 0);
-            
-            this->radius = 1;
-            
-            this->color.r = 255;
-            this->color.g = 255;
-            this->color.b = 255;
-            this->color.a = 255;
-        }
-    
-        // no color
-        Sphere(Vector3 newPos, float radius) {
-            this->position = newPos;
-            
-            this->radius = radius;
-            
-            this->color.r = 255;
-            this->color.g = 255;
-            this->color.b = 255;
-            this->color.a = 255;
-        }
+public:
+    float radius;
+    SDL_Color color; // struct
+    float specular;
+    float reflective;
+
+    Sphere() {
+        this->position = Vector3(0, 0, 0);
         
-        // SDL_Color
-        Sphere(Vector3 newPos, float radius, SDL_Color color) {
-            this->position = newPos;
-            this->radius = radius;
-            this->color = color;
-        }
+        this->radius = 1;
+        
+        this->color.r = 255;
+        this->color.g = 255;
+        this->color.b = 255;
+        this->color.a = 255;
+    }
+
+    // no color
+    Sphere(Vector3 newPos, float radius) {
+        this->position = newPos;
+        
+        this->radius = radius;
+        
+        this->color.r = 255;
+        this->color.g = 255;
+        this->color.b = 255;
+        this->color.a = 255;
+    }
     
-        // SDL_Color + light
-        Sphere(Vector3 newPos, float radius, SDL_Color color, float specular, float reflective) {
-            this->position = newPos;
-            this->radius = radius;
-            this->color = color;
-            this->specular = specular;
-            this->reflective = reflective;
-        }
+    // SDL_Color
+    Sphere(Vector3 newPos, float radius, SDL_Color color) {
+        this->position = newPos;
+        this->radius = radius;
+        this->color = color;
+    }
+
+    // SDL_Color + light
+    Sphere(Vector3 newPos, float radius, SDL_Color color, float specular, float reflective) {
+        this->position = newPos;
+        this->radius = radius;
+        this->color = color;
+        this->specular = specular;
+        this->reflective = reflective;
+    }
 };
 
 // Polymorphic base Light class
@@ -173,8 +254,8 @@ public:
 // =============
 // Global variables
 // =============
-float Cw = 720;
-float Ch = 720;
+float Cw = 1080;
+float Ch = 1080;
 float Vw = 1;
 float Vh = 1;
 float projection_plane_z = 1;
@@ -219,6 +300,13 @@ const float INFINITE = numeric_limits<float>::max();
 // IMPORTANT: Variables must be floats in order for direction vector to be correct
 Vector3 CanvasToViewport(float x, float y) {
     return Vector3( (x) * (Vw/Cw), (y) * (Vh/Ch), projection_plane_z);
+};
+
+Vector3 MatrixMult(Vector3 v, RotationMatrix m) {
+    float newX = m[0][0] * v.x + m[0][1] * v.y + m[0][2] * v.z;
+    float newY = m[1][0] * v.x + m[1][1] * v.y + m[1][2] * v.z;
+    float newZ = m[2][0] * v.x + m[2][1] * v.y + m[2][2] * v.z;
+    return Vector3(newX, newY, newZ);
 };
 
 SDL_Color MultiplyColor(SDL_Color color, float factor) {
@@ -365,14 +453,16 @@ SDL_Color TraceRay(Vector3 origin, Vector3 direction, float t_min, float t_max, 
     
     // recursive reflections
     float reflective = closest_sphere->reflective;
+    
     // base case
     if (recursion_depth <= 0 || reflective <= 0) {
         return localColor;
     }
 
     // recursive case
+    // TO-DO: Why do smaller values of t_min create bad, glitchy reflections
     Vector3 reflectedRay = reflectRay(direction * -1, normal);
-    SDL_Color reflectedColor = TraceRay(point, reflectedRay, 0.001, INFINITE, recursion_depth - 1);
+    SDL_Color reflectedColor = TraceRay(point, reflectedRay, 0.1, INFINITE, recursion_depth - 1);
 
     SDL_Color totalColor;
     totalColor.r = (Uint8)(localColor.r * (1 - reflective) + reflectedColor.r * reflective);
@@ -392,7 +482,8 @@ int main(int argc, char* args[]) {
         return -1;
     }
     
-    SceneObject camera = SceneObject(Vector3(0, 0, 0));
+    RotationMatrix rotationMatrix = RotationMatrix(0, 90, 0);
+    Camera camera = Camera(Vector3(-15, 0, 0), rotationMatrix);
     
     // Create window
     SDL_Window* window = SDL_CreateWindow("Raytracer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, Cw, Ch, SDL_WINDOW_SHOWN);
@@ -402,7 +493,7 @@ int main(int argc, char* args[]) {
     
     for (float x = -Cw/2; x < Cw/2; x++) {
         for (float y = -Ch/2; y < Ch/2; y++) {
-            Vector3 direction = CanvasToViewport(x, y);
+            Vector3 direction = MatrixMult( CanvasToViewport(x, y), camera.rotation);
             SDL_Color color = TraceRay(camera.position, direction, 1, INFINITE, 1);
 
             // Set color
