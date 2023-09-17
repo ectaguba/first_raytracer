@@ -78,7 +78,8 @@ class Sphere : public SceneObject {
     public:
         float radius;
         SDL_Color color; // struct
-        float   specular;
+        float specular;
+        float reflective;
     
         Sphere() {
             this->position = Vector3(0, 0, 0);
@@ -111,11 +112,12 @@ class Sphere : public SceneObject {
         }
     
         // SDL_Color + light
-        Sphere(Vector3 newPos, float radius, SDL_Color color, float specular) {
+        Sphere(Vector3 newPos, float radius, SDL_Color color, float specular, float reflective) {
             this->position = newPos;
             this->radius = radius;
             this->color = color;
             this->specular = specular;
+            this->reflective = reflective;
         }
 };
 
@@ -177,7 +179,7 @@ float Vw = 1;
 float Vh = 1;
 float projection_plane_z = 1;
 
-const SDL_Color BACKGROUND_COLOR = {255, 255, 255, 255}; // white
+const SDL_Color BACKGROUND_COLOR = {0, 0, 0, 255};
 
 const SDL_Color RED = {255, 0, 0, 255};
 const SDL_Color GREEN = {0, 255, 0, 255};
@@ -192,10 +194,10 @@ const int OBJECT_NOT_SHINY = -1;
 
 const int NUM_OF_SPHERES = 4;
 Sphere* spheres[NUM_OF_SPHERES] = {
-    new Sphere(Vector3(0, -1, 3), 1, RED, 500),
-    new Sphere(Vector3(2, 0, 4), 1, BLUE, 500),
-    new Sphere(Vector3(-2, 0, 4), 1, GREEN, 10),
-    new Sphere(Vector3(0, -5001, 0), 5000, YELLOW, 1000)
+    new Sphere(Vector3(0, -1, 3), 1, RED, 500, 0.2),
+    new Sphere(Vector3(2, 0, 4), 1, BLUE, 500, 0.3),
+    new Sphere(Vector3(-2, 0, 4), 1, GREEN, 10, 0.4),
+    new Sphere(Vector3(0, -5001, 0), 5000, YELLOW, 1000, 0.1)
 };
 
 // Array of pointers to Light objects.
@@ -225,6 +227,20 @@ SDL_Color MultiplyColor(SDL_Color color, float factor) {
     result.g = static_cast<float>(color.g) * factor;
     result.b = static_cast<float>(color.b) * factor;
     result.a = color.a; // Preserve the alpha value
+    return result;
+}
+
+SDL_Color AddColor(SDL_Color color1, SDL_Color color2) {
+    SDL_Color result;
+    result.r = static_cast<float>(color1.r) + static_cast<float>(color2.r);
+    result.g = static_cast<float>(color1.g) + static_cast<float>(color2.g);
+    result.b = static_cast<float>(color1.b) + static_cast<float>(color2.b);
+    result.a = color1.a;
+    
+    if (result.r > 255) result.r = 255;
+    if (result.g > 255) result.g = 255;
+    if (result.b > 255) result.b = 255;
+    
     return result;
 }
 
@@ -323,7 +339,11 @@ float ComputeLighting(Vector3 point, Vector3 normal, Vector3 viewport, float spe
     return totalIntensity;
 };
 
-SDL_Color TraceRay(Vector3 origin, Vector3 direction, float t_min, float t_max) {
+Vector3 reflectRay(Vector3 ray, Vector3 normal) {
+    return (normal * 2 * Vector3::Dot(normal, ray)) - ray;
+}
+
+SDL_Color TraceRay(Vector3 origin, Vector3 direction, float t_min, float t_max, float recursion_depth) {
     
     float closest_t;
     Sphere* closest_sphere;
@@ -341,9 +361,26 @@ SDL_Color TraceRay(Vector3 origin, Vector3 direction, float t_min, float t_max) 
     float lightIntensity = ComputeLighting(point, normal, direction * -1, closest_sphere->specular);
     if (lightIntensity > 1) lightIntensity = 1; // IMPORTANT: Values over 1 may darken spots.
     
-    SDL_Color modifiedColor = MultiplyColor(closest_sphere->color, lightIntensity);
+    SDL_Color localColor = MultiplyColor(closest_sphere->color, lightIntensity);
     
-    return modifiedColor;
+    // recursive reflections
+    float reflective = closest_sphere->reflective;
+    // base case
+    if (recursion_depth <= 0 || reflective <= 0) {
+        return localColor;
+    }
+
+    // recursive case
+    Vector3 reflectedRay = reflectRay(direction * -1, normal);
+    SDL_Color reflectedColor = TraceRay(point, reflectedRay, 0.001, INFINITE, recursion_depth - 1);
+
+    SDL_Color totalColor;
+    totalColor.r = (Uint8)(localColor.r * (1 - reflective) + reflectedColor.r * reflective);
+    totalColor.g = (Uint8)(localColor.g * (1 - reflective) + reflectedColor.g * reflective);
+    totalColor.b = (Uint8)(localColor.b * (1 - reflective) + reflectedColor.b * reflective);
+    totalColor.a = 255;
+
+    return totalColor;
 };
 
 int main(int argc, char* args[]) {
@@ -366,7 +403,7 @@ int main(int argc, char* args[]) {
     for (float x = -Cw/2; x < Cw/2; x++) {
         for (float y = -Ch/2; y < Ch/2; y++) {
             Vector3 direction = CanvasToViewport(x, y);
-            SDL_Color color = TraceRay(camera.position, direction, 1, INFINITE);
+            SDL_Color color = TraceRay(camera.position, direction, 1, INFINITE, 1);
 
             // Set color
             SDL_SetRenderDrawColor(renderer,
