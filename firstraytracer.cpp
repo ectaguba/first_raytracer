@@ -254,9 +254,9 @@ public:
 // =============
 // Global variables
 // =============
-float Cw = 1080;
-float Ch = 1080;
-float Vw = 1;
+float Cw = 1280;
+float Ch = 720;
+float Vw = 1.78;
 float Vh = 1;
 float projection_plane_z = 1;
 
@@ -269,10 +269,7 @@ const SDL_Color YELLOW = {255, 255, 0, 255};
 
 const int OBJECT_NOT_SHINY = -1;
 
-// spheres identifier is an Array of pointers to Sphere objects.
-// spheres[1] would print pointer address
-// *spheres[1] dereferences object and accesses class members
-
+// Array of pointers to Sphere objects.
 const int NUM_OF_SPHERES = 4;
 Sphere* spheres[NUM_OF_SPHERES] = {
     new Sphere(Vector3(0, -1, 3), 1, RED, 500, 0.2),
@@ -314,7 +311,7 @@ SDL_Color MultiplyColor(SDL_Color color, float factor) {
     result.r = static_cast<float>(color.r) * factor;
     result.g = static_cast<float>(color.g) * factor;
     result.b = static_cast<float>(color.b) * factor;
-    result.a = color.a; // Preserve the alpha value
+    result.a = color.a; // preserve the alpha value
     return result;
 }
 
@@ -342,8 +339,8 @@ void IntersectRaySphere(Vector3 origin, Vector3 direction, Sphere* sphere, float
     
     float discriminant = (b * b) - (4.0 * a * c);
     if (discriminant < 0) {
-        *t1 = INFINITE; // Store value in pointer pointing to address of t1
-        *t2 = INFINITE; // Store value in pointer pointing to address of t2
+        *t1 = INFINITE; // store value in pointer to address of t1
+        *t2 = INFINITE; // store value in pointer to address of t2
         return;
     }
     
@@ -358,12 +355,12 @@ void ClosestIntersection(Vector3 origin, Vector3 direction, float t_min, float t
     
     for (int s = 0; s < NUM_OF_SPHERES; s++) {
 
-        float t1, t2; // Send addresses
+        float t1, t2; // send addresses to method
         IntersectRaySphere(origin, direction, spheres[s], &t1, &t2);
 
         if ((t1 > t_min && t1 < t_max) && (t1 < *closest_t)) {
-            *closest_t = t1;
-            *closest_sphere = spheres[s];
+            *closest_t = t1; // store value in pointer pointing to address of closest_t
+            *closest_sphere = spheres[s]; // store value in pointer pointing to address of closest_t
         }
 
         if ((t2 > t_min && t2 < t_max) && (t2 < *closest_t)) {
@@ -371,7 +368,7 @@ void ClosestIntersection(Vector3 origin, Vector3 direction, float t_min, float t
             *closest_sphere = spheres[s];
         }
         
-    }; // End for loop
+    };
 }
 
 float ComputeLighting(Vector3 point, Vector3 normal, Vector3 viewport, float specular) {
@@ -475,35 +472,37 @@ SDL_Color TraceRay(Vector3 origin, Vector3 direction, float t_min, float t_max, 
 
 int main(int argc, char* args[]) {
 
-    // Initialize SDL2
+    // initialize SDL2
     if( SDL_Init( SDL_INIT_VIDEO ) < 0 )
     {
         printf( "SDL could not initialize! SDL_Error: %s\n", SDL_GetError() );
         return -1;
     }
     
-    RotationMatrix rotationMatrix = RotationMatrix(0, 90, 0);
-    Camera camera = Camera(Vector3(-15, 0, 0), rotationMatrix);
+    RotationMatrix rotationMatrix = RotationMatrix(0, 45, 0);
+    Camera camera = Camera(Vector3(-5, 0, 0), rotationMatrix);
     
-    // Create window
+    float reflection_depth = 3;
+    
+    // create window
     SDL_Window* window = SDL_CreateWindow("Raytracer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, Cw, Ch, SDL_WINDOW_SHOWN);
     
-    // Create renderer
+    // create renderer
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     
     for (float x = -Cw/2; x < Cw/2; x++) {
         for (float y = -Ch/2; y < Ch/2; y++) {
             Vector3 direction = MatrixMult( CanvasToViewport(x, y), camera.rotation);
-            SDL_Color color = TraceRay(camera.position, direction, 1, INFINITE, 1);
+            SDL_Color color = TraceRay(camera.position, direction, 1, INFINITE, reflection_depth);
 
-            // Set color
+            // set color
             SDL_SetRenderDrawColor(renderer,
                                    static_cast<int>(color.r),
                                    static_cast<int>(color.g),
                                    static_cast<int>(color.b),
                                    SDL_ALPHA_OPAQUE);
 
-            // Draw color (convert from viewport to canvas again)
+            // draw color (convert from viewport to canvas again)
             SDL_RenderDrawPoint(renderer, ((Cw/2) + x), ((Ch/2) - y - 1));
         }
     }
@@ -516,10 +515,10 @@ int main(int argc, char* args[]) {
         delete spheres[i];
     }
 
-    // Update the display
+    // update the display
     SDL_RenderPresent(renderer);
 
-    // Hack to get window to stay up
+    // hack to get window to stay up
     SDL_Event e;
     bool quit = false;
     while( quit == false ) {
@@ -528,7 +527,7 @@ int main(int argc, char* args[]) {
         }
     }
     
-    // Cleanup and quit
+    // cleanup and quit
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
