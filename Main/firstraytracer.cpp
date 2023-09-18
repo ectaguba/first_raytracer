@@ -141,29 +141,29 @@ void ClosestIntersection(Vector3 origin, Vector3 direction, float t_min, float t
             Sphere* sphere = dynamic_cast<Sphere*>(shapes[s]);
             float t1, t2; // send addresses to method
             IntersectRay(origin, direction, sphere, &t1, &t2);
-
+            
             if ((t1 > t_min && t1 < t_max) && (t1 < *closest_t)) {
                 *closest_t = t1; // store value in pointer pointing to address of closest_t
                 *closest_shape = shapes[s]; // store value in pointer pointing to address of closest_t
             }
-
+            
             if ((t2 > t_min && t2 < t_max) && (t2 < *closest_t)) {
                 *closest_t = t2;
                 *closest_shape = shapes[s];
             }
-            
-        } else if (shapes[s]->type == PLANE) {
-            
-            Plane* plane = dynamic_cast<Plane*>(shapes[s]);
-            float t;
-            IntersectRay(origin, direction, plane, &t);
-            
-            if ((t > t_min && t < t_max) && (t < *closest_t)) {
-                *closest_t = t; // store value in pointer pointing to address of closest_t
-                *closest_shape = shapes[s]; // store value in pointer pointing to address of closest_t
-            }
-            
         }
+//        } else if (shapes[s]->type == PLANE) {
+//
+//            Plane* plane = dynamic_cast<Plane*>(shapes[s]);
+//            float t;
+//            IntersectRay(origin, direction, plane, &t);
+//
+//            if ((t > t_min && t < t_max) && (t < *closest_t)) {
+//                *closest_t = t; // store value in pointer pointing to address of closest_t
+//                *closest_shape = shapes[s]; // store value in pointer pointing to address of closest_t
+//            }
+//
+//        }
     };
 }
 
@@ -266,25 +266,9 @@ SDL_Color TraceRay(Vector3 origin, Vector3 direction, float t_min, float t_max, 
     return totalColor;
 };
 
-int main(int argc, char* args[]) {
-
-    // initialize SDL2
-    if( SDL_Init( SDL_INIT_VIDEO ) < 0 )
-    {
-        printf( "SDL could not initialize! SDL_Error: %s\n", SDL_GetError() );
-        return -1;
-    }
+void renderScene(Camera camera, SDL_Renderer* renderer) {
     
-    RotationMatrix rotationMatrix = RotationMatrix(0, 45, 0);
-    Camera camera = Camera(Vector3(-5, 0, 0), rotationMatrix);
-    
-    float reflection_depth = 3;
-    
-    // create window
-    SDL_Window* window = SDL_CreateWindow("Raytracer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, Cw, Ch, SDL_WINDOW_SHOWN);
-    
-    // create renderer
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    float reflection_depth = 2;
     
     for (float x = -Cw/2; x < Cw/2; x++) {
         for (float y = -Ch/2; y < Ch/2; y++) {
@@ -303,23 +287,92 @@ int main(int argc, char* args[]) {
         }
     }
     
-    for (int i = 0; i < NUM_OF_LIGHTS; i++) {
-        delete lights[i];
-    }
-    
-    for (int i = 0; i < NUM_OF_SHAPES; i++) {
-        delete shapes[i];
-    }
-
     // update the display
     SDL_RenderPresent(renderer);
+}
+int main(int argc, char* args[]) {
+
+    // initialize SDL2
+    if( SDL_Init( SDL_INIT_VIDEO ) < 0 )
+    {
+        printf( "SDL could not initialize! SDL_Error: %s\n", SDL_GetError() );
+        return -1;
+    }
+    
+    // create window
+    SDL_Window* window = SDL_CreateWindow("Raytracer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, Cw, Ch, SDL_WINDOW_SHOWN);
+    
+    RotationMatrix rotationMatrix = RotationMatrix(0, 0, 0);
+    Camera camera = Camera(Vector3(0, 0, 0), rotationMatrix);
+    
+    // create renderer
+    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
+    renderScene(camera, renderer);
 
     // hack to get window to stay up
     SDL_Event e;
     bool quit = false;
     while( quit == false ) {
         while( SDL_PollEvent( &e ) ) {
-            if( e.type == SDL_QUIT ) quit = true;
+            if( e.type == SDL_QUIT ) {
+                quit = true;
+            }
+        }
+        
+        const Uint8* currentKeyStates = SDL_GetKeyboardState( NULL );
+        // move
+        if( currentKeyStates[ SDL_SCANCODE_W ] )
+        {
+            camera.position.z += 1;
+            renderScene(camera, renderer);
+        }
+        else if( currentKeyStates[ SDL_SCANCODE_A ] )
+        {
+            camera.position.x -= 1;
+            renderScene(camera, renderer);
+        }
+        else if( currentKeyStates[ SDL_SCANCODE_S ] )
+        {
+            camera.position.z -= 1;
+            renderScene(camera, renderer);
+        }
+        else if( currentKeyStates[ SDL_SCANCODE_D ] )
+        {
+            camera.position.x += 1;
+            renderScene(camera, renderer);
+        }
+        else if( currentKeyStates[ SDL_SCANCODE_Q ] )
+        {
+            camera.position.y -= 1;
+            renderScene(camera, renderer);
+        }
+        else if( currentKeyStates[ SDL_SCANCODE_E ] )
+        {
+            camera.position.y += 1;
+            renderScene(camera, renderer);
+        }
+        // rotate
+        // TO-DO: Why are there limitations on my camera rotation?
+        else if( currentKeyStates[ SDL_SCANCODE_UP] )
+        {
+            camera.rotation.rotateX(-10);
+            renderScene(camera, renderer);
+        }
+        else if( currentKeyStates[ SDL_SCANCODE_DOWN] )
+        {
+            camera.rotation.rotateX(10);
+            renderScene(camera, renderer);
+        }
+        else if( currentKeyStates[ SDL_SCANCODE_LEFT] )
+        {
+            camera.rotation.rotateY(-10);
+            renderScene(camera, renderer);
+        }
+        else if( currentKeyStates[ SDL_SCANCODE_RIGHT] )
+        {
+            camera.rotation.rotateY(10);
+            renderScene(camera, renderer);
         }
     }
     
