@@ -6,14 +6,13 @@
 //
 #include "Camera.h"
 
-Camera::Camera() : rotation(RotationMatrix()) {
-    position = Vector3(0, 0, 0);
-}
+// Default position and rotation
+Camera::Camera() : SceneObject(Vector3(0, 0, 0)) {}
 
-Camera::Camera(Vector3 position) : rotation(RotationMatrix()) {
-    this->position = position;
-}
+// Given position w/ default rotation
+Camera::Camera(Vector3 position) : SceneObject(position) {}
 
-Camera::Camera(Vector3 position, RotationMatrix rotation) : rotation(rotation) {
-    this->position = position;
+// Given position and rotation
+Camera::Camera(Vector3 position, RotationMatrix rotation) : SceneObject(position) {
+    this->rotation = rotation;
 }

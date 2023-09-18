@@ -7,20 +7,32 @@
 
 #include "Sphere.h"
 
-Sphere::Sphere() : radius(1), color({255, 255, 255, 255}), specular(0), reflective(0) {
-    position = Vector3(0, 0, 0);
+Sphere::Sphere() : Shape(SPHERE) {
+    radius = 1;
 }
 
-Sphere::Sphere(Vector3 newPos, float radius) : radius(radius), color({255, 255, 255, 255}), specular(0), reflective(0) {
-    position = newPos;
+Sphere::Sphere(float radius) : Shape(SPHERE) {
+    this->radius = radius;
 }
 
-Sphere::Sphere(Vector3 newPos, float radius, SDL_Color color) : radius(radius), color(color), specular(0), reflective(0) {
-    position = newPos;
+Sphere::Sphere(float radius, Vector3 newPos) : Shape(SPHERE, newPos) {
+    this->radius = radius;
 }
 
-Sphere::Sphere(Vector3 newPos, float radius, SDL_Color color, float specular, float reflective)
-    : radius(radius), color(color), specular(specular), reflective(reflective) {
-    position = newPos;
+Sphere::Sphere(float radius, Vector3 newPos, SDL_Color color) : Shape(SPHERE, newPos, color) {
+    this->radius = radius;
+}
+
+Sphere::Sphere(float radius, Vector3 newPos, SDL_Color color, float specular) : Shape(SPHERE, newPos, color, specular) {
+    this->radius = radius;
+}
+
+Sphere::Sphere(float radius, Vector3 newPos, SDL_Color color, float specular, float reflective)
+    : Shape(SPHERE, newPos, color, specular, reflective) {
+        this->radius = radius;
+}
+
+void Sphere::setRadius(float newRadius) {
+    radius = newRadius;
 }
 

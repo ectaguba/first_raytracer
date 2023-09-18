@@ -13,3 +13,7 @@ SceneObject::SceneObject() {
 SceneObject::SceneObject(Vector3 newPos) {
     position = newPos;
 }
+
+void SceneObject::setPosition(Vector3 newPosition) {
+    position = newPosition;
+}

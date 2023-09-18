@@ -7,7 +7,10 @@
 
 #include "Light.h"
 
-Light::Light(float intensity, LightType type) : intensity(intensity), type(type) {}
+Light::Light(float intensity, LightType type) {
+    this->intensity = intensity;
+    this->type = type;
+}
 
 Vector3 Light::getVector() const {
     return Vector3(0, 0, 0);
