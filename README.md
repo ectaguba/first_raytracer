@@ -1,5 +1,5 @@
 # first_raytracer
-This program requires the SDL2 multimedia library to render the scene.
+This program requires the SDL2 multimedia library to render the scene. The raytracer source file contains algorithms for intersection detection, lights, shadows, and recursive reflections.
 
 **Scene with origin camera position and default camera rotation:**
 
